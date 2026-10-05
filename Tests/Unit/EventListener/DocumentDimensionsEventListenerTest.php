@@ -19,7 +19,6 @@ use TYPO3\CMS\Core\Resource\Event\BeforeFileProcessingEvent;
 use TYPO3\CMS\Core\Resource\File;
 use TYPO3\CMS\Core\Resource\MetaDataAspect;
 use TYPO3\CMS\Core\Resource\ProcessedFile;
-use TYPO3\CMS\Core\Resource\Processing\TaskInterface;
 use TYPO3\CMS\Core\Resource\ResourceStorage;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
@@ -47,6 +46,7 @@ final class DocumentDimensionsEventListenerTest extends UnitTestCase
 					'backend' => true,
 					'frontend' => true,
 					'private' => true,
+					'ignoreExtensionAssets' => true,
 				],
 			]);
 
@@ -64,6 +64,30 @@ final class DocumentDimensionsEventListenerTest extends UnitTestCase
 		$this->providerMock
 			->expects($this->never())
 			->method('supports');
+
+		$this->parserMock
+			->expects($this->never())
+			->method('parseFile');
+
+		$listener = new DocumentDimensionsEventListener(
+			$this->providerMock,
+			$this->parserMock,
+			$this->extensionConfiguration
+		);
+
+		$listener($event);
+	}
+
+	#[Test]
+	public function doesNothingWhenExtensionAssetsAreIgnored(): void
+	{
+		$event = $this->createEvent(
+			publicUrl: '/_assets/12345/Favicons/favicon.ico'
+		);
+
+		$this->providerMock
+			->expects($this->never())
+			->method('hasConfiguration');
 
 		$this->parserMock
 			->expects($this->never())
@@ -166,7 +190,8 @@ final class DocumentDimensionsEventListenerTest extends UnitTestCase
 		?int $width = null,
 		?int $height = null,
 		?MetaDataAspect $metadata = null,
-		string $taskType = 'Preview'
+		string $taskType = 'Preview',
+		?string $publicUrl = 'fileadmin/document.pdf'
 	): BeforeFileProcessingEvent {
 		$storageMock = $this->createMock(ResourceStorage::class);
 
@@ -185,6 +210,7 @@ final class DocumentDimensionsEventListenerTest extends UnitTestCase
 		$fileStub->method('getStorage')->willReturn($storageMock);
 		$fileStub->method('exists')->willReturn(true);
 		$fileStub->method('getForLocalProcessing')->willReturn('/tmp/document.pdf');
+		$fileStub->method('getPublicUrl')->willReturn($publicUrl);
 
 		$fileStub->method('getProperty')
 			->willReturnCallback(

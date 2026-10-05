@@ -33,6 +33,10 @@ class DocumentDimensionsEventListener
 		if ($event->getFile()->getProperty('width')) return;
 		if ($event->getFile()->getProperty('height')) return;
 
+		if ((bool)($this->configuration['common']['ignoreExtensionAssets'] ?? false) && str_starts_with($event->getFile()?->getPublicUrl() ?? '', '/_assets/')) {
+			return;
+		}
+
 		if (!$this->provider?->hasConfiguration()) return;
 		if (!in_array($event->getTaskType(), ['Preview', 'CropScaleMask'], true)) return;
 
